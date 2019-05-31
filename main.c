@@ -3,14 +3,14 @@
 #include <time.h>
 
 typedef struct elemento{
+    char code[8];
     char dado;
-    struct elemento * prox_ponto;
-    struct elemento * prox_traco;
+    struct elemento * prox;
 }t_elemento;
 
 typedef struct lista{
-    t_elemento * init;
-    t_elemento * end;
+    t_elemento * inicio;
+    t_elemento * fim;
 }t_lista;
 
 typedef struct no
@@ -26,6 +26,13 @@ void preencher_arvore(t_no * raiz);
 void code_to_text(t_no * raiz, char * text);
 void preencher_lista(t_lista * l);
 void code_to_text_list(t_lista * l, char * text_l);
+t_elemento * RetirarDoFim(t_lista * l);
+void InserirNoFim(t_lista * l, t_elemento * new);
+t_elemento * RetirarDoInicio (t_lista * l);
+void InserirNoInicio(t_lista * l, t_elemento * new);
+int EstaVazia(t_lista * l);
+void zerar_array(char vetor[8]);
+char pesquisar_lista(t_lista * l, char * codig);
 
 
 int main(void){
@@ -41,10 +48,9 @@ int main(void){
 
     t_lista * list = (t_lista *)malloc(sizeof(t_lista));
     t_elemento * first = (t_elemento *)malloc(sizeof(t_elemento));
-    first->prox_ponto = NULL;
-    first->prox_traco = NULL;
+    zerar_array(first->code);
     first->dado = 'x';
-    list->init = first;
+    list->inicio = first;
 
     printf("\n -------- Decodificando a mensagem usando arvore --------\n\n");
 
@@ -150,36 +156,26 @@ void code_to_text(t_no * raiz, char * text){
 
 void preencher_lista(t_lista * l){
     t_elemento * atual_l = (t_elemento *)malloc(sizeof(t_elemento));
+    int j = 0;
     char c = 'a';
     char letra;
     FILE * pont_arq;
     pont_arq = fopen("morse.txt", "r");
     c = getc(pont_arq);
+    atual_l = l->inicio;
     do{
-        atual_l = l->init;
         letra = c;
+        j = 0;
+        t_elemento * prox = (t_elemento *)malloc(sizeof(t_elemento));
+        zerar_array(prox->code);
+        prox->dado = letra;
         while(c != '\n'){
             c = getc(pont_arq);
-            if(c == '.'){
-                if(atual_l->prox_ponto == NULL){
-                    t_elemento * ponto = (t_elemento *)malloc(sizeof(t_elemento));
-                    ponto->prox_ponto = NULL;
-                    ponto->prox_traco = NULL;
-                    atual_l->prox_ponto = ponto;
-                }
-                atual_l = atual_l->prox_ponto;
-            }
-            else if (c == '-'){
-                if(atual_l->prox_traco == NULL){
-                    t_elemento * traco = (t_elemento *)malloc(sizeof(t_elemento));
-                    traco->prox_ponto = NULL;
-                    traco->prox_traco = NULL;
-                    atual_l->prox_traco = traco;
-                }
-                atual_l = atual_l->prox_traco;
-            }
+            prox->code[j] = c;
+            j++;
         }
-        atual_l->dado = letra;
+        InserirNoFim(l, prox);
+        atual_l = prox;
         c = getc(pont_arq);        
     }while (c != EOF);
     fclose(pont_arq);
@@ -189,24 +185,36 @@ void preencher_lista(t_lista * l){
 
 void code_to_text_list(t_lista * l, char * text_l){
     t_elemento * atual_l2 = (t_elemento *)malloc(sizeof(t_elemento));
-    atual_l2 = l->init;
+    int j = 0;
+    int entrou = 0;
+    char codig[8] = {"xxxxxxxx"};
+    atual_l2 = l->inicio;
     char c = 'a';
+
     FILE * pont_arq2;
     pont_arq2 = fopen("message.txt", "r");
+
     do{
-        atual_l2 = l->init;
+        atual_l2 = l->inicio;
+        j = 0;
+        
         c = getc(pont_arq2);
         while( (c == '.') || (c == '-') ){
             if(c == '.'){
-                atual_l2 = atual_l2->prox_ponto;
+                codig[j] = '.';
+                j++;
             }
             else if(c == '-'){
-                atual_l2 = atual_l2->prox_traco;
+                codig[j] = '-';
+                j++;
             }
             c = getc(pont_arq2);
+            entrou = 1;
         }
-        if(atual_l2->dado != 'x'){
-            text_l[k] = atual_l2->dado;
+        if(entrou){
+            entrou = 0;
+            zerar_array(codig);
+            text_l[k] = pesquisar_lista(l, codig);
             k++;
         }
         if (c == '/'){
@@ -218,4 +226,103 @@ void code_to_text_list(t_lista * l, char * text_l){
     free(atual_l2);
     return;
 
+}
+
+int EstaVazia(t_lista * l){
+    if (l->inicio == NULL){
+        return 1;
+    }
+        return 0;
+}
+
+void InserirNoInicio(t_lista * l, t_elemento * new){ //ponteiro para o elemento como parâmetro.
+    new->prox = l->inicio;  
+    if (!EstaVazia(l)){
+        l->inicio = new;
+    }
+    else{
+        l->inicio = new;
+        l->fim = new;
+    }
+}
+
+t_elemento * RetirarDoInicio (t_lista * l){ //retorna um ponteiro pra uma struct elemento.
+    t_elemento * dado; 
+    if (!EstaVazia(l)){
+        dado = l->inicio;
+        l->inicio = l->inicio->prox; //muda o início para o próximo elemento da lista
+        if (l->inicio == NULL){ //só havia 1 elemento na lista
+            l->fim = NULL;      //após retirado, não tem mais nenhum
+        }
+        return dado;            //retorna a struct toda do elemento inicial
+    }
+    else{
+        printf("Lista já está vazia\n");
+        return NULL; //retorna uma struct nula.
+    }
+}
+
+void InserirNoFim(t_lista * l, t_elemento * new){
+    new->prox = NULL;
+    if(!EstaVazia(l)){
+        l->fim->prox = new; //o último elemento passa a appontar para o novo.
+    }
+    else{
+        l->inicio = new; //nesse caso, estamos inserindo o primeiro elemento da lista.
+    }
+    l->fim = new; //em ambas as situações, new é o novo último.
+}    
+
+t_elemento * RetirarDoFim(t_lista * l){
+    if(!EstaVazia(l)){
+        t_elemento * dado;
+        if(l->inicio == l->fim){ //Apenas 1 elemento
+            dado = l->inicio;
+            l->inicio = NULL;
+            l->fim = NULL;
+            return dado; //retorna o único elemento e torna a lista vazia
+        }
+        else{ //mais de 1 elemento
+            t_elemento * penultimo = l->inicio; //struct para percorrer a lista
+            while(penultimo->prox != l->fim){ //enquanto a struct de referência não for de fato a penúltima.
+                penultimo = penultimo->prox;  //percorre-se a lista.
+            }
+            dado = l->fim;
+            l->fim = penultimo;  //O fim agora pertence ao penúltimo
+            l->fim->prox = NULL; //o último se refere ao NULL
+            return dado;
+        }
+    }
+    else{
+        printf("Lista já está vazia\n");
+        return NULL;
+    }
+}
+
+void zerar_array(char vetor[8]){
+    int j;
+    for(j = 0; j < 8; j++){
+        vetor[j] = 'x';
+    }
+}
+
+char pesquisar_lista(t_lista * l, char * codig){
+    t_elemento * aux= (t_elemento *)malloc(sizeof(t_elemento));
+    aux = l->inicio;
+    int j = 0;
+    int igual = 1;
+    while(aux != NULL){
+        while( (codig[j] == '-' || codig[j] == '.') && (igual == 1) ){
+            if(codig[j] != aux->code[j]){
+                igual = 0;
+            }
+        }
+        if(igual == 1){
+            return aux->dado;
+        }
+        else{
+            igual = 1;
+        }
+        aux = aux->prox;
+    }
 }
