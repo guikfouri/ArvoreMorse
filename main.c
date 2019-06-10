@@ -51,6 +51,7 @@ int main(void){
     zerar_array(first->code);
     first->dado = 'x';
     list->inicio = first;
+    list->fim = first;
 
     printf("\n -------- Decodificando a mensagem usando arvore --------\n\n");
 
@@ -61,13 +62,13 @@ int main(void){
     preencher_arvore(raiz);
     code_to_text(raiz, text);
     for (j = 0; j < i; j++){
-        printf("%c ", text[j]);
+        printf("%c", text[j]);
     }
     printf("\n");
 
     clock_gettime(CLOCK_MONOTONIC, &fim_arv);
     time_arv =fim_arv.tv_nsec - init_arv.tv_nsec;
-    printf("\n --- Tempo demorado usando arvore: %lf ---", time_arv);
+    printf("\n --- Tempo demorado usando arvore: %lf ---\n", time_arv);
 
     printf("\n -------- Decodificando a mensagem usando lista --------\n\n");
 
@@ -75,7 +76,7 @@ int main(void){
     preencher_lista(list);
     code_to_text_list(list, text_l);
     for (j = 0; j < k; j++){
-        printf("%c ", text[j]);
+        printf("%c", text_l[j]);
     }
     printf("\n");
 
@@ -161,7 +162,7 @@ void preencher_lista(t_lista * l){
     char letra;
     FILE * pont_arq;
     pont_arq = fopen("morse.txt", "r");
-    c = getc(pont_arq);
+    c = getc(pont_arq);                     //Primeira letra
     atual_l = l->inicio;
     do{
         letra = c;
@@ -169,14 +170,16 @@ void preencher_lista(t_lista * l){
         t_elemento * prox = (t_elemento *)malloc(sizeof(t_elemento));
         zerar_array(prox->code);
         prox->dado = letra;
+        c = getc(pont_arq);                 //Pegar o ' '
+        c = getc(pont_arq);                 //Primeiro simbolo
         while(c != '\n'){
-            c = getc(pont_arq);
             prox->code[j] = c;
             j++;
+            c = getc(pont_arq);             //Resto do Código
         }
         InserirNoFim(l, prox);
         atual_l = prox;
-        c = getc(pont_arq);        
+        c = getc(pont_arq);                 //Letra
     }while (c != EOF);
     fclose(pont_arq);
     free(atual_l);
@@ -203,19 +206,20 @@ void code_to_text_list(t_lista * l, char * text_l){
             if(c == '.'){
                 codig[j] = '.';
                 j++;
+                entrou = 1;
             }
             else if(c == '-'){
                 codig[j] = '-';
                 j++;
+                entrou = 1;
             }
             c = getc(pont_arq2);
-            entrou = 1;
         }
         if(entrou){
             entrou = 0;
-            zerar_array(codig);
             text_l[k] = pesquisar_lista(l, codig);
             k++;
+            zerar_array(codig);
         }
         if (c == '/'){
             text_l[k] = ' ';
@@ -306,23 +310,22 @@ void zerar_array(char vetor[8]){
     }
 }
 
-char pesquisar_lista(t_lista * l, char * codig){
+char pesquisar_lista(t_lista * l, char codig[]){
     t_elemento * aux= (t_elemento *)malloc(sizeof(t_elemento));
-    aux = l->inicio;
+    aux = l->inicio->prox;
     int j = 0;
     int igual = 1;
     while(aux != NULL){
-        while( (codig[j] == '-' || codig[j] == '.') && (igual == 1) ){
+        while( (codig[j] == '-' || codig[j] == '.' || aux->code[j] == '.' || aux->code[j] == '-') && (igual == 1) ){
             if(codig[j] != aux->code[j]){
                 igual = 0;
             }
+            j++;
         }
-        if(igual == 1){
+        if(igual == 1)
             return aux->dado;
-        }
-        else{
-            igual = 1;
-        }
+        igual = 1;
+        j = 0;
         aux = aux->prox;
     }
 }
